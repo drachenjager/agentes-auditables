@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentes que se pueden auditar</title>
+<meta name="description" content="Un molde para construir agentes con Claude Code: objetivo verificable, contrato de salida, guardrails que fallan cerrado y evals que se ven en rojo.">
+<style>
+  :root {
+    --fondo: #fbfaf7; --panel: #ffffff; --tinta: #1c1b19; --tenue: #5f5b53; --linea: #e4dfd5;
+    --acento: #b4532a; --acento-suave: #f6e9e1; --verde: #2f6f4f; --rojo: #a83a32; --codigo: #f3efe7;
+    --radio: 10px; --ancho: 820px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fondo: #15140f; --panel: #1d1c17; --tinta: #ece8df; --tenue: #a39d90; --linea: #33312a;
+      --acento: #e08a5c; --acento-suave: #2b211b; --verde: #7cc29b; --rojo: #e58a80; --codigo: #24221c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--fondo); color: var(--tinta);
+    font: 17px/1.62 "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  }
+  main { max-width: var(--ancho); margin: 0 auto; padding: 0 20px 96px; }
+  header { max-width: var(--ancho); margin: 0 auto; padding: 72px 20px 28px; }
+  .sobre { font: 600 13px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: .09em; text-transform: uppercase; color: var(--acento); }
+  h1 { font-size: clamp(34px, 6vw, 52px); line-height: 1.08; margin: 14px 0 18px; letter-spacing: -.015em; font-weight: 600; }
+  .bajada { font-size: 20px; color: var(--tenue); max-width: 40em; margin: 0; }
+  h2 { font-size: 27px; line-height: 1.2; margin: 68px 0 10px; font-weight: 600; letter-spacing: -.01em; }
+  h3 { font: 600 16px/1.35 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; margin: 0 0 6px; }
+  p { margin: 0 0 16px; }
+  .guia { color: var(--tenue); margin-bottom: 22px; }
+  a { color: var(--acento); }
+  code, pre { font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  code { background: var(--codigo); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--codigo); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 18px; overflow-x: auto; margin: 0 0 20px; }
+  pre code { background: none; padding: 0; }
+  .cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 34px 0 0; }
+  .cifra { background: var(--panel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 16px 14px; }
+  .cifra b { display: block; font: 600 30px/1 ui-sans-serif, system-ui, sans-serif; color: var(--acento); margin-bottom: 6px; }
+  .cifra span { font: 13px/1.35 ui-sans-serif, system-ui, sans-serif; color: var(--tenue); }
+  .rejilla { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .tarjeta { background: var(--panel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 18px 18px 6px; }
+  .tarjeta p { font-size: 16px; color: var(--tenue); }
+  .num { font: 600 12px/1 ui-sans-serif, system-ui, sans-serif; color: var(--acento); letter-spacing: .08em; display: block; margin-bottom: 8px; }
+  .tabla { overflow-x: auto; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--panel); margin-bottom: 20px; }
+  table { border-collapse: collapse; width: 100%; font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+  th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--linea); }
+  th { font-weight: 600; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: var(--tenue); }
+  tr:last-child td { border-bottom: 0; }
+  .ok { color: var(--verde); font-weight: 600; } .mal { color: var(--rojo); font-weight: 600; }
+  .nota { background: var(--acento-suave); border-left: 3px solid var(--acento); border-radius: 0 var(--radio) var(--radio) 0; padding: 14px 18px; margin: 0 0 20px; }
+  .nota p:last-child { margin: 0; }
+  .ciclo { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 22px; padding: 0; list-style: none; font: 14px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  .ciclo li { background: var(--panel); border: 1px solid var(--linea); border-radius: 999px; padding: 7px 13px; }
+  .ciclo li b { color: var(--acento); margin-right: 5px; }
+  footer { max-width: var(--ancho); margin: 0 auto; padding: 28px 20px 60px; border-top: 1px solid var(--linea); color: var(--tenue); font: 14px/1.6 ui-sans-serif, system-ui, sans-serif; }
+  @media (max-width: 680px) {
+    body { font-size: 16px; } header { padding-top: 48px; }
+    .cifras { grid-template-columns: repeat(2, 1fr); } .rejilla { grid-template-columns: 1fr; }
+    main, header, footer { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sobre">Metodología · Claude Code</div>
+  <h1>Agentes que se pueden auditar</h1>
+  <p class="bajada">Un molde para construir agentes con Claude Code. Convierte “quiero un agente que…” en un repositorio con objetivo verificable, contrato de salida, guardrails que fallan cerrado y evals que alguien vio ponerse en rojo.</p>
+  <div class="cifras">
+    <div class="cifra"><b>96</b><span>evals propios del molde, sin red y sin modelo</span></div>
+    <div class="cifra"><b>19</b><span>mutaciones, cada una vista en rojo</span></div>
+    <div class="cifra"><b>3</b><span>niveles de andamiaje, según el riesgo</span></div>
+    <div class="cifra"><b>4</b><span>familias de evals en cada agente</span></div>
+  </div>
+</header>
+
+<main>
+
+<h2>El problema</h2>
+<p>Un agente hecho con prisa se parece mucho a uno que funciona. Responde con seguridad, devuelve texto bien escrito y casi nunca dice “no sé”. Lo que le falta no se ve en una demostración: un objetivo que diga cuándo terminó, una forma de salida que otra máquina pueda verificar, límites que no dependan de que el modelo los recuerde, y pruebas que detecten cuando algo empeora.</p>
+<p>El molde es una <em>skill</em> de Claude Code que hace esa parte por sistema. Entrevista, redacta el objetivo, genera el repositorio, corre el agente sobre casos de prueba y no lo da por bueno hasta ver sus evals fallar a propósito.</p>
+
+<ol class="ciclo" aria-label="Flujo del molde">
+  <li><b>0</b>Entrevista</li><li><b>1</b>Objetivo</li><li><b>2</b>Andamiaje</li><li><b>3</b>Casos</li>
+  <li><b>4</b>Corrida</li><li><b>5</b>Evals en verde</li><li><b>6</b>Mutación en rojo</li><li><b>7</b>Modelo más barato que pasa</li><li><b>8</b>Auditoría</li>
+</ol>
+
+<h2>Seis decisiones de diseño</h2>
+<p class="guia">Cada una existe porque algo se rompió sin ella.</p>
+<div class="rejilla">
+  <div class="tarjeta"><span class="num">01</span><h3>Primero el objetivo, después el agente</h3>
+    <p>El trabajo en una frase, una métrica, su valor de hoy, la meta con fecha, un grupo de control, lo que nunca puede hacer y cuándo se detiene. Lo que no se sabe va en <code>null</code>; no se estima. Sin control, el resultado es una opinión.</p></div>
+  <div class="tarjeta"><span class="num">02</span><h3>La salida es un contrato</h3>
+    <p>Sólo JSON, con categorías cerradas y un valor explícito para “no sé”. Cada conclusión cita la frase de la entrada que la sostiene. Si no puede citar, no puede concluir. La alucinación no se arregla pidiendo que no alucine: se arregla con un formato donde decir “no sé” es válido.</p></div>
+  <div class="tarjeta"><span class="num">03</span><h3>Lo que obliga no vive en el prompt</h3>
+    <p>Las instrucciones orientan; los permisos y los <em>hooks</em> obligan. Cada restricción dura del objetivo termina en un control determinista y en un eval que lo ve bloquear. Una restricción que sólo está escrita en un documento es un deseo.</p></div>
+  <div class="tarjeta"><span class="num">04</span><h3>El modelo no elige de quién son los datos</h3>
+    <p>Un identificador que pasa por el modelo puede salir cambiado, y el script correrá bien sobre el caso equivocado. La llave la pone quien orquesta. El subagente recibe texto y devuelve JSON, con una lista cerrada de herramientas de sólo lectura.</p></div>
+  <div class="tarjeta"><span class="num">05</span><h3>Un error del servicio nunca es un dato</h3>
+    <p>Un tiempo de espera agotado no es “documento ilegible”, y “no encontrado” no es “no ocurrió”. Si la corrida no terminó con éxito completo, no se escribe salida. El estado rechaza un error guardado como resultado.</p></div>
+  <div class="tarjeta"><span class="num">06</span><h3>Hasta no verlo en rojo, un eval no mira nada</h3>
+    <p>Casi todos los evals que se escriben a la primera pasan siempre. Por eso cada uno tiene su par, lo que debe pasar y lo que debe fallar, y una mutación: se rompe la regla a propósito y el eval tiene que caer.</p></div>
+</div>
+
+<h2>Qué nace con cada agente</h2>
+<p class="guia">El rigor es proporcional al riesgo. Un clasificador no carga el andamiaje de un proceso que corre semanas.</p>
+<div class="tabla"><table>
+  <thead><tr><th>Nivel</th><th>Cuándo</th><th>Nace con</th></tr></thead>
+  <tbody>
+    <tr><td><b>Bajo</b></td><td>Clasifica o extrae un texto</td><td>Objetivo, contrato de salida, subagente, cuatro casos, evals, <em>hooks</em> de protección e integración continua</td></tr>
+    <tr><td><b>Medio</b></td><td>Consulta datos, guarda estado o actúa hacia afuera</td><td>Lo anterior, más una puerta única de escritura al estado, confirmación humana y un ciclo de trabajo</td></tr>
+    <tr><td><b>Alto</b></td><td>Corre semanas o coordina subagentes</td><td>Lo anterior, más plan en archivo, bitácora de cambios y traza de herramientas sin datos personales</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Cuatro familias de evals</h2>
+<p class="guia">Todas corren sin red y sin modelo, en segundos, en cada cambio.</p>
+<div class="tabla"><table>
+  <thead><tr><th>Familia</th><th>Qué ejerce</th><th>Un par de ejemplo</th></tr></thead>
+  <tbody>
+    <tr><td><b>Salidas</b></td><td>Lo que el agente produjo sobre los casos</td><td>El caso claro cita textual; el vacío devuelve “no sé”</td></tr>
+    <tr><td><b>Guardrails</b></td><td>Los <em>hooks</em>, corridos como procesos</td><td>Un borrado se bloquea; una lectura pasa; una entrada rota se bloquea</td></tr>
+    <tr><td><b>Estado</b></td><td>La puerta de escritura</td><td>Un resultado con valor se guarda; un error con valor se rechaza</td></tr>
+    <tr><td><b>Estructura</b></td><td>La lista de verificación hecha código</td><td>Un subagente con herramientas declaradas pasa; sin declarar, falla</td></tr>
+  </tbody>
+</table></div>
+<p>El molde se prueba a sí mismo igual. Crea agentes de prueba, los llena, y los rompe de veinte formas: si un agente roto saliera en verde, la plantilla de evals no serviría. Dos mutaciones salieron verdes la primera vez y destaparon puntos ciegos reales. Una revisaba un archivo por subcadena y daba por bueno lo que no estaba. La otra probaba un diff grande con el dato al principio, así que un control que sólo leyera las primeras líneas habría pasado.</p>
+
+<h2>Lo que aprendí probando Claude Code</h2>
+<p class="guia">Comprobado con corridas reales en noviembre de 2026, versión 2.1. Vale la pena volver a probarlo en versiones nuevas.</p>
+<div class="tabla"><table>
+  <thead><tr><th>Lo que probé</th><th>Lo que pasó</th><th>Qué hice</th></tr></thead>
+  <tbody>
+    <tr><td>Un <em>hook</em> previo que sale con código 2</td><td class="ok">El comando no corre</td><td>Es el único código que bloquea</td></tr>
+    <tr><td>El mismo <em>hook</em>, pero truena y sale con 1</td><td class="mal">El comando sí corre</td><td>Envolver el script para salir con 2 ante cualquier error</td></tr>
+    <tr><td>Igual, con <code>"onFailure": "block"</code></td><td class="ok">El comando no corre</td><td>Segunda capa, para cuando el script ni arranca</td></tr>
+    <tr><td>Un control en bash con <code>pipefail</code> y <code>grep -q</code></td><td class="mal">En entradas grandes deja pasar lo que debía bloquear</td><td>Leer toda la entrada antes de decidir; probar con tamaño</td></tr>
+    <tr><td>Correr un subagente directo con <code>--agent</code> y <code>--json-schema</code></td><td class="mal">El esquema se ignora sin avisar</td><td>Validar el contrato con una función propia</td></tr>
+    <tr><td>El <em>hook</em> de inicio de sesión en una corrida sin persona</td><td class="mal">También se dispara, y repite trabajo en cada corrida</td><td>Apagarlo con una variable desde el corredor</td></tr>
+    <tr><td><code>allowed-tools</code> en una skill</td><td>Preaprueba, no restringe</td><td>No contarlo como defensa</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Tres fragmentos</h2>
+<h3>Un guardrail que falla cerrado, en dos capas</h3>
+<pre><code>{
+  "hooks": {
+    "PreToolUse": [{
+      "matcher": "Bash|PowerShell",
+      "hooks": [{
+        "type": "command",
+        "command": "python3 -I \"${CLAUDE_PROJECT_DIR}/.claude/hooks/bloquea.py\"",
+        "onFailure": "block"
+      }]
+    }]
+  }
+}</code></pre>
+<pre><code>if __name__ == "__main__":
+    try:
+        sys.exit(main())          # 0 pasa, 2 bloquea
+    except SystemExit:
+        raise
+    except BaseException as e:    # un guardrail roto no puede ser un guardrail abierto
+        print(f"BLOQUEADO: el control falló ({e})", file=sys.stderr)
+        sys.exit(2)</code></pre>
+
+<h3>Un contrato donde “no sé” es una respuesta válida</h3>
+<pre><code>{
+  "campo_categoria": "dictamen",
+  "categorias": ["CUMPLE", "NO CUMPLE", "SIN DATO"],
+  "valor_no_se": "SIN DATO",
+  "campos_obligatorios": ["dictamen", "conclusiones", "as_of", "fuente"],
+  "descripciones": {
+    "conclusiones": "Lista de {texto, cita}. Cada cita es textual de la entrada. Vacía si el dictamen es SIN DATO.",
+    "as_of": "Fecha a la que la entrada es cierta, no la de hoy. null si la entrada no la declara."
+  }
+}</code></pre>
+
+<h3>Un eval con su par</h3>
+<pre><code>check("positivo: una salida que cumple pasa", not valida(buena))
+check("negativo: categoría inventada",        bool(valida({**buena, "dictamen": "QUIZÁ"})))
+check("negativo: 'no sé' con conclusiones",   bool(valida({**buena, "dictamen": "SIN DATO"})))
+# Mutación: se anula la regla en valida() y los dos negativos tienen que caer.</code></pre>
+
+<h2>Lo que no intenta ser</h2>
+<div class="nota">
+  <p>El molde protege una sesión de Claude Code en la máquina de quien la abre. No es una plataforma de producción: no tiene cuotas, auditoría central ni aislamiento entre inquilinos. Cuando un agente va a servir a otros sistemas o a clientes, lo que se lleva de aquí es lo que costó descubrir: el objetivo, el contrato, los casos y los evals.</p>
+</div>
+
+<h2>Lecturas que influyeron</h2>
+<p>Las ideas se contrastaron con tres libros y con la documentación oficial de Claude Code. Donde un libro y una corrida real difieren, manda la corrida.</p>
+<ul>
+  <li>Pietro Montaldo, <em>Creación de Claude Skills</em> (Packt, 2026): una skill, un trabajo; pruebas de activación.</li>
+  <li>Jia Huang, <em>El modelo operativo de Claude Code</em> (2026): la capa determinista, <em>hooks</em>, corridas sin persona.</li>
+  <li>Eden Marco, <em>Programación agéntica con Claude Code</em> (2026): ingeniería de contexto y agentes de larga duración.</li>
+</ul>
+
+</main>
+
+<footer>
+  Esta página describe una metodología. La implementación y los agentes construidos con ella viven en repositorios privados.
+</footer>
+
+</body>
+</html>
